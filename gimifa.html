@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>A4 雞米花春聯排版工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --a4-w: 210mm;
+            --a4-h: 297mm;
+        }
+        * { box-sizing: border-box; }
+        body { 
+            background: #e0e0e0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            margin: 0; 
+            font-family: sans-serif; 
+        }
+        
+        .toolbar { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+            text-align: center;
+        }
+
+        /* A4 紙張本體 - 下載時以此範圍為主 */
+        #a4-page {
+            width: var(--a4-w);
+            height: var(--a4-h);
+            background: white;
+            padding: 10mm; /* 邊距，確保印表機不會切到照片 */
+            display: flex;
+            flex-direction: column;
+            gap: 10mm;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .row {
+            display: flex;
+            gap: 10mm;
+            align-items: flex-start;
+        }
+
+        /* 照片容器 - 移除虛線與文字 */
+        .photo-container {
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 確保不裁切圖片 (Contain) */
+        .photo-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+
+        /* 精確物理尺寸 */
+        .size-15 { width: 150mm; height: 150mm; }
+        .size-10 { width: 100mm; height: 100mm; }
+        .size-5  { width: 50mm; height: 50mm; }
+
+        button {
+            background: #202124;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        button:hover { background: #3c4043; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <p>上傳照片，自動排版</p>
+    <input type="file" id="imageInput" accept="image/*" style="margin-bottom: 15px;">
+    <br>
+    <button onclick="exportToImage()">下載 A4 列印圖片 (PNG)</button>
+</div>
+
+<div id="a4-page">
+    <div class="row">
+        <div class="photo-container size-15">
+            <img class="preview">
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="photo-container size-10">
+            <img class="preview">
+        </div>
+        
+        <div style="display: flex; flex-direction: column; gap: 10mm;">
+            <div class="photo-container size-5">
+                <img class="preview">
+            </div>
+            <div class="photo-container size-5">
+                <img class="preview">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const previews = document.querySelectorAll('.preview');
+
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previews.forEach(img => {
+                    img.src = event.target.result;
+                    img.style.display = 'block';
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    function exportToImage() {
+        const a4 = document.getElementById('a4-page');
+        // scale: 3 提供高品質列印效果
+        html2canvas(a4, { 
+            scale: 3,
+            backgroundColor: "#ffffff" 
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'gimifaA4.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>
