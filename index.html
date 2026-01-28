@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>雞米花春聯 - 終極相容版</title>
+    <title>雞米花春聯 - 一鍵填滿版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root { --a4-w: 210mm; --a4-h: 297mm; }
@@ -12,10 +12,9 @@
         
         .toolbar { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; text-align: center; width: 95%; max-width: 600px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         
-        /* 縮放預覽，讓 A4 在螢幕上好看 */
         .preview-container { transform: scale(0.45); transform-origin: top center; height: 135mm; }
         @media (max-width: 600px) { .preview-container { transform: scale(0.35); height: 105mm; } }
-
+        
         #a4-page {
             width: var(--a4-w); height: var(--a4-h);
             background: #BC4C41; padding: 5mm; 
@@ -31,9 +30,10 @@
         .size-10 { width: 100mm; height: 100mm; }
         .size-5  { width: 50mm; height: 50mm; }
 
-        .btn-main { background: #e60012; color: white; border: none; padding: 15px; border-radius: 4px; font-weight: bold; width: 100%; font-size: 16px; cursor: pointer; }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn-fill { background: #f39c12; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; flex: 1; cursor: pointer; }
+        .btn-main { background: #e60012; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; flex: 1; cursor: pointer; }
         
-        /* 手機專用彈出層 */
         #result-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center;
@@ -46,9 +46,16 @@
 
 <div class="toolbar">
     <p style="margin:0 0 10px 0; font-weight:bold;">雞米花春聯排版工具</p>
+    
+    <div class="btn-group">
+        <button class="btn-fill" onclick="triggerFillAll()">⚡ 一鍵填滿照片</button>
+        <button class="btn-main" onclick="processLayout()">💾 下載 A4 圖片</button>
+    </div>
+    
+    <p style="font-size: 12px; color: #666;">也可以點擊下方方格單獨更換照片</p>
+    
     <input type="file" id="imageInput" accept="image/*" style="display:none;">
-    <button class="btn-main" onclick="processLayout()">下載 A4 列印圖片</button>
-    <p style="font-size: 12px; color: #666; margin-top: 5px;">電腦點擊直接下載 / 手機點擊長按儲存</p>
+    <input type="file" id="fillAllInput" accept="image/*" style="display:none;">
 </div>
 
 <div class="preview-container">
@@ -76,15 +83,17 @@
 </div>
 
 <div id="result-overlay" onclick="this.style.display='none'">
-    <p>偵測到手機環境：請長按圖片儲存</p>
+    <p>長按圖片儲存 / 電腦右鍵另存</p>
     <img id="final-image">
     <button style="margin-top:20px; background:#555; color:white; border:none; padding:8px 20px;">關閉預覽</button>
 </div>
 
 <script>
     const imageInput = document.getElementById('imageInput');
+    const fillAllInput = document.getElementById('fillAllInput');
     let currentTarget = null;
 
+    // 單張上傳
     function triggerUpload(el) {
         currentTarget = el.querySelector('.preview');
         imageInput.value = '';
@@ -92,18 +101,40 @@
     }
 
     imageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file && currentTarget) {
+        handleFileSelect(e.target.files[0], (dataUrl) => {
+            if (currentTarget) updatePhotoBox(currentTarget, dataUrl);
+        });
+    });
+
+    // 一鍵填滿上傳
+    function triggerFillAll() {
+        fillAllInput.value = '';
+        fillAllInput.click();
+    }
+
+    fillAllInput.addEventListener('change', function(e) {
+        handleFileSelect(e.target.files[0], (dataUrl) => {
+            const allPreviews = document.querySelectorAll('.preview');
+            allPreviews.forEach(img => updatePhotoBox(img, dataUrl));
+        });
+    });
+
+    // 核心處理：更新照片與樣式
+    function updatePhotoBox(imgEl, dataUrl) {
+        imgEl.src = dataUrl;
+        imgEl.style.display = 'block';
+        const parent = imgEl.parentElement;
+        parent.style.background = 'transparent';
+        parent.style.border = 'none';
+    }
+
+    function handleFileSelect(file, callback) {
+        if (file) {
             const reader = new FileReader();
-            reader.onload = function(ev) {
-                currentTarget.src = ev.target.result;
-                currentTarget.style.display = 'block';
-                currentTarget.parentElement.style.background = 'transparent';
-                currentTarget.parentElement.style.border = 'none';
-            };
+            reader.onload = (ev) => callback(ev.target.result);
             reader.readAsDataURL(file);
         }
-    });
+    }
 
     function processLayout() {
         const a4 = document.getElementById('a4-page');
@@ -111,27 +142,25 @@
         
         html2canvas(a4, { scale: 2.5, useCORS: true }).then(canvas => {
             const dataUrl = canvas.toDataURL('image/png');
-            
             if (isMobile) {
-                // 手機版：顯示彈窗
                 document.getElementById('final-image').src = dataUrl;
                 document.getElementById('result-overlay').style.display = 'flex';
             } else {
-                // 電腦版：直接下載
                 const link = document.createElement('a');
-                link.download = 'gimifa_chunlian_PC.png';
+                link.download = 'gimifa_chunlian_full.png';
                 link.href = dataUrl;
                 link.click();
             }
         });
     }
 </script>
-    <hr><div style="text-align: center; margin-top: 20px;">
-    <p>讓你自己排版：</p>
-    <a href="./gmf/index.html" style="padding: 10px 20px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px;">
-        自己排
+
+<hr>
+<div style="text-align: center; margin-top: 20px;">
+    <p>自訂排版：</p>
+    <a href="./gmf/index.html" style="padding: 10px 20px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        手動添加不同尺寸
     </a>
 </div>
 </body>
 </html>
-
