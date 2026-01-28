@@ -2,159 +2,119 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>A4 雞米花春聯排版工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雞米花春聯手機版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        :root {
-            --a4-w: 210mm;
-            --a4-h: 297mm;
-        }
+        :root { --a4-w: 210mm; --a4-h: 297mm; }
         * { box-sizing: border-box; }
-        body { 
-            background: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 20px; 
-            margin: 0; 
-            font-family: sans-serif; 
-        }
+        body { background: #333; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; font-family: sans-serif; }
         
-        .toolbar { 
-            background: white; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-            text-align: center;
-        }
+        .toolbar { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; text-align: center; width: 95%; max-width: 500px; }
+        
+        /* 預覽容器：在手機上縮放顯示，不然 A4 太大會超出螢幕 */
+        .preview-container { transform: scale(0.4); transform-origin: top center; height: 120mm; }
+        @media (max-width: 600px) { .preview-container { transform: scale(0.35); height: 105mm; } }
 
-        /* A4 紙張本體 - 下載時以此範圍為主 */
         #a4-page {
-            width: var(--a4-w);
-            height: var(--a4-h);
-            background: #BC4C41;
-            padding: 10mm; /* 邊距，確保印表機不會切到照片 */
-            display: flex;
-            flex-direction: column;
-            gap: 10mm;
-            overflow: hidden;
-            position: relative;
+            width: var(--a4-w); height: var(--a4-h);
+            background: #BC4C41; padding: 5mm; 
+            display: flex; flex-direction: column; gap: 4mm;
         }
 
-        .row {
-            display: flex;
-            gap: 10mm;
-            align-items: flex-start;
-        }
+        .row { display: flex; gap: 4mm; }
+        .v-stack { display: flex; flex-direction: column; gap: 4mm; }
+        .photo-container { background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; border: 0.1mm solid rgba(255,255,255,0.2); }
+        .photo-container img { width: 100%; height: 100%; object-fit: contain; display: none; }
 
-        /* 照片容器 - 移除虛線與文字 */
-        .photo-container {
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-        }
-
-        /* 確保不裁切圖片 (Contain) */
-        .photo-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            display: none;
-        }
-
-        /* 精確物理尺寸 */
         .size-15 { width: 150mm; height: 150mm; }
         .size-10 { width: 100mm; height: 100mm; }
         .size-5  { width: 50mm; height: 50mm; }
 
-        button {
-            background: #202124;
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
+        button { background: #e60012; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; width: 100%; margin-top: 10px; }
+        
+        /* 彈出層：顯示生成的圖片 */
+        #result-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center;
         }
-        button:hover { background: #3c4043; }
+        #result-overlay img { max-width: 90%; max-height: 80%; border: 2px solid white; }
+        #result-overlay p { color: white; margin-top: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="toolbar">
-    <p>上傳照片，自動排版</p>
-    <input type="file" id="imageInput" accept="image/*" style="margin-bottom: 15px;">
-    <br>
-    <button onclick="exportToImage()">下載 A4 列印圖片 (PNG)</button>
+    <p style="margin:0;">點擊格子換照片，完成後點下方按鈕</p>
+    <input type="file" id="imageInput" accept="image/*" style="display:none;">
+    <button onclick="generateImage()">生成圖片 (手機長按儲存)</button>
 </div>
 
-<div id="a4-page">
-    <div class="row">
-        <div class="photo-container size-15">
-            <img class="preview">
+<div class="preview-container">
+    <div id="a4-page">
+        <div class="row">
+            <div class="photo-container size-15" onclick="triggerUpload(this)"><img class="preview"></div>
+            <div class="v-stack">
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="photo-container size-10" onclick="triggerUpload(this)"><img class="preview"></div>
+            <div class="v-stack">
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+            </div>
+            <div class="v-stack">
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <div class="photo-container size-10">
-            <img class="preview">
-        </div>
-        
-        <div style="display: flex; flex-direction: column; gap: 10mm;">
-            <div class="photo-container size-5">
-                <img class="preview">
-            </div>
-            <div class="photo-container size-5">
-                <img class="preview">
-            </div>
-        </div>
-    </div>
+<div id="result-overlay" onclick="this.style.display='none'">
+    <p>長按圖片即可儲存到手機</p>
+    <img id="final-image">
+    <button style="width: auto; padding: 10px 30px; background: #666;">關閉預覽</button>
 </div>
 
 <script>
     const imageInput = document.getElementById('imageInput');
-    const previews = document.querySelectorAll('.preview');
+    let currentTarget = null;
+
+    function triggerUpload(el) {
+        currentTarget = el.querySelector('.preview');
+        imageInput.value = '';
+        imageInput.click();
+    }
 
     imageInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
-        if (file) {
+        if (file && currentTarget) {
             const reader = new FileReader();
             reader.onload = function(event) {
-                previews.forEach(img => {
-                    img.src = event.target.result;
-                    img.style.display = 'block';
-                });
+                currentTarget.src = event.target.result;
+                currentTarget.style.display = 'block';
+                currentTarget.parentElement.style.background = 'transparent';
+                currentTarget.parentElement.style.border = 'none';
             };
             reader.readAsDataURL(file);
         }
     });
 
-    function exportToImage() {
+    function generateImage() {
         const a4 = document.getElementById('a4-page');
-        // scale: 3 提供高品質列印效果
-        html2canvas(a4, { 
-            scale: 3,
-            backgroundColor: "#ffffff" 
-        }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'gimifaA4.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+        const overlay = document.getElementById('result-overlay');
+        const finalImg = document.getElementById('final-image');
+        
+        // 生成圖片
+        html2canvas(a4, { scale: 2, useCORS: true }).then(canvas => {
+            finalImg.src = canvas.toDataURL('image/png');
+            overlay.style.display = 'flex';
         });
     }
 </script>
-<hr> <div style="text-align: center; margin-top: 20px;">
-    <p>讓你自己排版：</p>
-    <a href="./gmf/index.html" style="padding: 10px 20px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px;">
-        自己排
-    </a>
-</div>
 </body>
 </html>
-
-
