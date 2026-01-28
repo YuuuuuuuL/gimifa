@@ -1,337 +1,203 @@
 <!DOCTYPE html>
-
 <html lang="zh-TW">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <title>雞米花春聯排版工具</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雞米花春聯排版工具 - 終極相容版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
     <style>
-
         :root { --a4-w: 210mm; --a4-h: 297mm; }
-
         * { box-sizing: border-box; }
-
-        body { background: white; display: flex; flex-direction: column; align-items: center; padding: 20px; font-family: sans-serif; }
-
-        .toolbar { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center; width: 750px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-
+        body { background: #333; display: flex; flex-direction: column; align-items: center; padding: 10px; margin: 0; font-family: sans-serif; }
         
+        /* 工具列優化 */
+        .toolbar { 
+            background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; 
+            text-align: center; width: 95%; max-width: 750px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); 
+        }
+        
+        /* 螢幕顯示縮放：解決手機上 A4 太大的問題 */
+        .preview-container { transform: scale(0.45); transform-origin: top center; height: 135mm; }
+        @media (max-width: 600px) { .preview-container { transform: scale(0.32); height: 95mm; } }
 
         #a4-page {
-
             width: var(--a4-w); height: var(--a4-h);
-
             background: #BC4C41; padding: 2mm; 
-
             display: flex; flex-wrap: wrap; gap: 2mm; 
-
             align-content: flex-start; overflow: hidden; position: relative;
-
         }
-
-
 
         .combo-row { display: flex; gap: 2mm; align-items: flex-start; }
-
         .v-stack { display: flex; flex-direction: column; gap: 2mm; }
 
-
-
         .chun-lian {
-
-            border: 0.5px solid #eee; background: #fffafa;
-
+            border: 0.5px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.05);
             display: flex; align-items: center; justify-content: center;
-
             cursor: pointer; overflow: hidden; position: relative; flex-shrink: 0;
-
         }
-
         .chun-lian img { width: 100%; height: 100%; object-fit: contain; }
 
-
-
         /* 尺寸定義 */
-
         .s15 { width: 150mm; height: 150mm; }
-
         .s10 { width: 100mm; height: 100mm; }
-
         .s5  { width: 50mm; height: 50mm; }
-
         .s4  { width: 40mm; height: 40mm; }
+        .long-big { width: 50mm; height: 200mm; }
+        .long-small { width: 30mm; height: 120mm; }
 
-        .long-big { width: 50mm; height: 200mm; }   /* 5x20 cm */
-
-        .long-small { width: 30mm; height: 120mm; } /* 3x12 cm */
-
-
-
-        .btn-group { margin: 10px 0; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-
-        button { padding: 8px 14px; margin: 4px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; }
-
+        .btn-group { margin: 8px 0; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        button { padding: 8px 12px; margin: 3px; cursor: pointer; border-radius: 4px; border: none; font-weight: bold; font-size: 13px; }
         .btn-combo { background: #6200ee; color: white; }
-
-        .btn-new { background: #ff5722; color: white; } /* 新尺寸按鈕 */
-
+        .btn-new { background: #ff5722; color: white; }
         .btn-std { background: #03dac6; color: black; }
+        .btn-save { background: #cf6679; color: white; width: 100%; margin-top: 10px; font-size: 16px; padding: 12px; }
+        .label { display: block; font-size: 11px; color: #666; margin-bottom: 3px; font-weight: bold; }
 
-        .btn-save { background: #cf6679; color: white; width: 100%; margin-top: 10px; }
-
-        .label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: bold; }
-
+        /* 手機專用彈出層 */
+        #result-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center;
+        }
+        #result-overlay img { max-width: 90%; max-height: 80%; border: 2px solid white; }
+        #result-overlay p { color: white; margin-top: 15px; font-weight: bold; }
     </style>
-
 </head>
-
 <body>
 
-
-
 <div class="toolbar">
-
     <div class="btn-group">
-
         <span class="label">🚀 空間極致組合</span>
-
         <button class="btn-combo" onclick="addBestCombo15()">15cm 組合 (15+5*3)</button>
-
         <button class="btn-combo" onclick="addBestCombo10()">10cm 組合 (10+5*4)</button>
-
     </div>
-
-
 
     <div class="btn-group">
-
-        <span class="label">✨ 新增對聯尺寸</span>
-
-        <button class="btn-new" onclick="addSingle('long-big')">+ 大對聯 (5x20cm)</button>
-
-        <button class="btn-new" onclick="addSingle('long-small')">+ 小對聯 (3x12cm)</button>
-
-        <button class="btn-new" onclick="addSingle('s4')">+ 迷你斗方 (4x4cm)</button>
-
+        <span class="label">✨ 對聯與迷你尺寸</span>
+        <button class="btn-new" onclick="addSingle('long-big')">+ 大對聯</button>
+        <button class="btn-new" onclick="addSingle('long-small')">+ 小對聯</button>
+        <button class="btn-new" onclick="addSingle('s4')">+ 4cm斗方</button>
     </div>
 
-
-
-    <div class="btn-group" style="border:none;">
-
-        <span class="label">📏 標準斗方</span>
-
+    <div class="btn-group" style="border:none; padding:0;">
         <button class="btn-std" onclick="addSingle('s15')">15cm</button>
-
         <button class="btn-std" onclick="addSingle('s10')">10cm</button>
-
         <button class="btn-std" onclick="addSingle('s5')">5cm</button>
-
-        <button onclick="document.getElementById('a4-page').innerHTML=''" style="background:#757575; color:white;">清空畫布</button>
-
+        <button onclick="document.getElementById('a4-page').innerHTML=''" style="background:#757575; color:white;">清空</button>
     </div>
-
     
-
-    <button class="btn-save" onclick="exportImage()">下載高品質列印 PNG</button>
-
+    <button class="btn-save" onclick="handleExport()">下載 A4 列印圖片</button>
+    <p style="font-size: 11px; color: #888; margin-top: 5px;">電腦點擊直接下載 / 手機點擊長按儲存</p>
 </div>
 
+<div class="preview-container">
+    <div id="a4-page"></div>
+</div>
 
-
-<div id="a4-page"></div>
+<div id="result-overlay" onclick="this.style.display='none'">
+    <p>長按圖片儲存至相簿</p>
+    <img id="final-image">
+    <button style="margin-top:20px; background:#555; color:white; border:none; padding:8px 20px;">關閉預覽</button>
+</div>
 
 <input type="file" id="fInput" style="display:none" accept="image/*">
 
-
-
 <script>
-
     const a4 = document.getElementById('a4-page');
-
     const fInput = document.getElementById('fInput');
-
     let targetBox = null;
 
-
-
     function makeBox(cls) {
-
         const div = document.createElement('div');
-
         div.className = 'chun-lian ' + cls;
-
         div.onclick = (e) => { e.stopPropagation(); targetBox = div; fInput.value = ''; fInput.click(); };
-
         return div;
-
     }
-
-
 
     function addBestCombo15() {
-
         const row = document.createElement('div');
-
         row.className = 'combo-row';
-
         row.appendChild(makeBox('s15'));
-
         const v = document.createElement('div');
-
         v.className = 'v-stack';
-
         v.appendChild(makeBox('s5')); v.appendChild(makeBox('s5')); v.appendChild(makeBox('s5'));
-
         row.appendChild(v);
-
         canFit(row);
-
     }
-
-
 
     function addBestCombo10() {
-
         const row = document.createElement('div');
-
         row.className = 'combo-row';
-
         row.appendChild(makeBox('s10'));
-
-        for(let i=0; i<2; i++) { // 兩排 5cm
-
+        for(let i=0; i<2; i++) {
             const v = document.createElement('div');
-
             v.className = 'v-stack';
-
             v.appendChild(makeBox('s5')); v.appendChild(makeBox('s5'));
-
             row.appendChild(v);
-
         }
-
         canFit(row);
-
     }
 
-
-
-    function addSingle(cls) {
-
-        canFit(makeBox(cls));
-
-    }
-
-
+    function addSingle(cls) { canFit(makeBox(cls)); }
 
     function canFit(el) {
-
         a4.appendChild(el);
-
         if (a4.scrollHeight > a4.clientHeight + 2) {
-
-            alert("空間不足，無法放入！");
-
-            a4.removeChild(el);
-
-            return false;
-
+            alert("空間不足！"); a4.removeChild(el); return false;
         }
-
         return true;
-
     }
-
-
 
     fInput.onchange = function(e) {
-
         const file = e.target.files[0];
-
         if (!file) return;
-
         const reader = new FileReader();
-
         reader.onload = function(event) {
-
             const img = new Image();
-
             img.onload = function() {
-
                 const canvas = document.createElement('canvas');
-
                 const ctx = canvas.getContext('2d');
-
                 const maxDim = 1500; 
-
                 let w = img.width, h = img.height;
-
                 if (w > h && w > maxDim) { h *= maxDim / w; w = maxDim; }
-
                 else if (h > maxDim) { w *= maxDim / h; h = maxDim; }
-
                 canvas.width = w; canvas.height = h;
-
                 ctx.drawImage(img, 0, 0, w, h);
-
                 targetBox.innerHTML = '';
-
                 const newImg = document.createElement('img');
-
                 newImg.src = canvas.toDataURL('image/jpeg', 0.85);
-
                 targetBox.appendChild(newImg);
-
-targetBox.style.border = "none"; // 上傳後移除邊框
-
+                targetBox.style.border = "none";
             };
-
             img.src = event.target.result;
-
         };
-
         reader.readAsDataURL(file);
-
     };
 
-
-
-    function exportImage() {
-
+    function handleExport() {
         if (a4.children.length === 0) return alert("請先新增春聯");
-
-        html2canvas(a4, { scale: 3, useCORS: true, backgroundColor: "#ffffff" }).then(canvas => {
-
-            const a = document.createElement('a');
-
-            a.download = 'custom_chunlian_layout.png';
-
-            a.href = canvas.toDataURL('image/png');
-
-            a.click();
-
+        
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        html2canvas(a4, { scale: 2.5, useCORS: true }).then(canvas => {
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            if (isMobile) {
+                document.getElementById('final-image').src = dataUrl;
+                document.getElementById('result-overlay').style.display = 'flex';
+            } else {
+                const link = document.createElement('a');
+                link.download = 'custom_chunlian.png';
+                link.href = dataUrl;
+                link.click();
+            }
         });
-
     }
-
 </script>
-<hr> <div style="text-align: center; margin-top: 20px;">
-    <p>固定排版：</p>
-    <a href="../index.html" style="padding: 10px 20px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px;">
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="../index.html" style="padding: 10px 20px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
         回到上一頁
     </a>
 </div>
 </body>
-
-
 </html>
-
-
-
-
