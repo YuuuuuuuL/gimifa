@@ -9,9 +9,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 
-<body>
+<body class="mobile-closed"> <!-- 預設手機版關閉選單 -->
 
-    <aside class="sidebar">
+    <!-- 手機版浮動切換鍵 -->
+    <button class="menu-toggle" onclick="toggleMenu()" id="menu-toggle">
+        <span class="icon">⚙️</span>
+        <span class="text">開啟設定</span>
+    </button>
+
+    <aside class="sidebar" id="sidebar">
         <h1 class="app-title">雞米花排版 Pro V2</h1>
 
         <div class="control-group">
