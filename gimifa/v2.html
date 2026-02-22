@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雞米花春聯排版工具</title>
+    <link rel="stylesheet" href="v2-style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <h1 class="app-title">雞米花排版 Pro V2</h1>
+
+        <div class="control-group">
+            <span class="group-label">⚡ 快速操作</span>
+            <button class="btn btn-secondary" onclick="triggerFillAll()">
+                <span>⚡</span> 一鍵填滿
+            </button>
+            <button class="btn btn-outline" onclick="clearAll()">
+                <span>🗑️</span> 全部清空
+            </button>
+        </div>
+
+        <div class="control-group">
+            <span class="group-label">📦 組合包</span>
+            <button class="btn btn-outline" onclick="addCombo15()">15cm 組合</button>
+            <button class="btn btn-outline" onclick="addCombo10()">10cm 組合</button>
+        </div>
+
+        <div class="control-group">
+            <span class="group-label">📏 單一尺寸</span>
+            <button class="btn btn-outline" onclick="addBox('s15')">15cm 斗方</button>
+            <button class="btn btn-outline" onclick="addBox('s10')">10cm 斗方</button>
+            <button class="btn btn-outline" onclick="addBox('s5')">5cm 迷你</button>
+            <button class="btn btn-outline" onclick="addBox('s4')">4cm 極小</button>
+            <button class="btn btn-outline" onclick="addBox('long-big')">大對聯 (5x20)</button>
+            <button class="btn btn-outline" onclick="addBox('long-small')">小對聯 (3x12)</button>
+        </div>
+
+        <div style="margin-top: auto; padding-top: 20px;">
+            <button id="exportBtn" class="btn btn-primary" onclick="handleExport()">
+                <span>💾</span> 下載 A4 列印圖
+            </button>
+            <p style="font-size: 11px; color: var(--text-dim); margin-top: 10px; text-align: center;">
+                高品質 300+ DPI 支援
+            </p>
+        </div>
+    </aside>
+
+    <main class="main-viewport">
+        <div class="preview-container" id="preview-scaler">
+            <div id="a4-page">
+                <!-- 內容會在這裡生成 -->
+            </div>
+        </div>
+    </main>
+
+    <input type="file" id="singleInput" accept="image/*" style="display:none">
+    <input type="file" id="batchInput" accept="image/*" style="display:none">
+
+    <div id="result-overlay" class="overlay" onclick="this.style.display='none'">
+        <p>✨ 生成成功！</p>
+        <p>手機用戶長按圖片存檔</p>
+        <img id="final-image">
+        <button class="btn btn-outline" style="margin-top: 20px; width: auto;">返回</button>
+    </div>
+
+    <div id="loading-toast" class="loading-toast">🚀 正在生成高畫質圖片...</div>
+
+    <script src="v2-main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雞米花春聯排版工具 - 極致高畫質版</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* 定義 A4 標準規格與配色變數 */
+        :root { 
+            --a4-w: 210mm; /* A4 寬度 */
+            --a4-h: 297mm; /* A4 高度 */
+            --bg-color: #BC4C41; /* 春聯專用紅 */
+        }
+        /* 基本盒模型重設，確保尺寸計算包含邊框 */
+        * { box-sizing: border-box; }
+        /* 頁面整體佈局設定 */
+        body { 
+            background: #222; /* 背景深灰色 */
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 10px; 
+            margin: 0; 
+            font-family: "Microsoft JhengHei", sans-serif; /* 微軟正黑體 */
+        }
+        
+        /* 頂部操作列樣式 */
+        .toolbar { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 12px; 
+            margin-bottom: 20px; 
+            text-align: center; 
+            width: 95%; 
+            max-width: 500px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+        }
+        
+        /* 預覽容器：將巨大的 A4 頁面縮小顯示在螢幕上 */
+        .preview-container { 
+            transform: scale(0.4); /* 電腦版顯示 40% 大小 */
+            transform-origin: top center; 
+            height: 125mm; /* 視覺高度補償 */
+        }
+        /* 手機螢幕適配：縮放比例調至 30% */
+        @media (max-width: 600px) { 
+            .preview-container { transform: scale(0.3); height: 95mm; } 
+        }
+        
+        /* A4 實體畫布：這是最後轉圖的目標範圍 */
+        #a4-page {
+            width: var(--a4-w); 
+            height: var(--a4-h);
+            background: var(--bg-color); 
+            padding: 5mm; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 4mm; /* 格子間距 */
+            overflow: hidden;
+            /* 最佳化圖片渲染：避免在瀏覽器內顯示時模糊 */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+        }
+
+        /* 橫向排列容器 */
+        .row { display: flex; gap: 4mm; }
+        /* 縱向排列容器 */
+        .v-stack { display: flex; flex-direction: column; gap: 4mm; }
+        
+        /* 照片格子容器 */
+        .photo-container { 
+            background: rgba(255,255,255,0.1); /* 未上傳時的淡白色塊 */
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            overflow: hidden; 
+            cursor: pointer; 
+            border: 0.2mm solid rgba(255,255,255,0.3); /* 細白邊框方便對齊 */
+            position: relative;
+        }
+        
+        /* 照片顯示設定（已優化：針對正方形原圖） */
+        .photo-container img { 
+            width: 100%; 
+            height: 100%; 
+            /* 既然照片本來就是正方形，使用 contain 或 fill 都能維持最高清，不進行任何裁切運算 */
+            object-fit: fill; 
+            display: none; /* 初始隱藏 */
+            /* 強制瀏覽器使用最高品質渲染模式 */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: high-quality;
+        }
+
+        /* 格子尺寸定義：以毫米(mm)為單位確保列印尺寸精確 */
+        .size-15 { width: 150mm; height: 150mm; } /* 大春聯 */
+        .size-10 { width: 100mm; height: 100mm; } /* 中春聯 */
+        .size-5  { width: 50mm; height: 50mm; }   /* 小春聯 */
+
+        /* 按鈕視覺樣式群組 */
+        .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
+        .btn { 
+            border: none; padding: 12px; border-radius: 6px; 
+            font-weight: bold; cursor: pointer; transition: 0.2s; 
+        }
+        .btn-fill { background: #f39c12; color: white; flex: 1.2; } /* 橘色：填滿 */
+        .btn-main { background: #e60012; color: white; flex: 1.5; font-size: 16px; } /* 紅色：主要按鈕 */
+        .btn-clear { background: #7f8c8d; color: white; flex: 0.8; } /* 灰色：清除 */
+        .btn:active { transform: scale(0.95); opacity: 0.8; } /* 點擊縮放效果 */
+        
+        /* 手機端生成結果的黑色遮罩預覽層 */
+        #result-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; 
+            align-items: center; justify-content: center; padding: 20px;
+        }
+        #result-overlay img { 
+            max-width: 90%; max-height: 80%; 
+            border: 1px solid #fff; 
+        }
+        #result-overlay p { color: white; margin: 15px 0; font-size: 16px; font-weight: bold; }
+        .close-btn { background: white; color: black; padding: 10px 30px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="toolbar">
+    <h3 style="margin:0 0 10px 0; color: #e60012;">雞米花春聯極致高畫質版</h3>
+    
+    <div class="btn-group">
+        <button class="btn btn-fill" onclick="triggerFillAll()">⚡ 一鍵填滿</button>
+        <button id="saveBtn" class="btn btn-main" onclick="processLayout()">💾 下載 A4 圖片</button>
+        <button class="btn btn-clear" onclick="clearAllPhotos()">🗑️ 清除</button>
+    </div>
+    <p style="font-size: 12px; color: #666; margin: 5px 0;">已針對正方形照片優化畫質</p>
+    
+    <input type="file" id="imageInput" accept="image/*" style="display:none;">
+    <input type="file" id="fillAllInput" accept="image/*" style="display:none;">
+</div>
+
+<div class="preview-container">
+    <div id="a4-page">
+        <div class="row">
+            <div class="photo-container size-15" onclick="triggerUpload(this)"><img class="preview"></div>
+            <div class="v-stack">
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="photo-container size-10" onclick="triggerUpload(this)"><img class="preview"></div>
+            <div class="v-stack">
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+            </div>
+            <div class="v-stack">
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+                <div class="photo-container size-5" onclick="triggerUpload(this)"><img class="preview"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="result-overlay">
+    <p>長按圖片儲存至相簿，或右鍵另存</p>
+    <img id="final-image">
+    <div style="margin-top:20px;" class="close-btn" onclick="document.getElementById('result-overlay').style.display='none'">返回修改</div>
+</div>
+
+<script>
+    // 綁定 DOM 元素
+    const imageInput = document.getElementById('imageInput');
+    const fillAllInput = document.getElementById('fillAllInput');
+    let currentTarget = null; // 記錄當前點擊的是哪一個圖片容器
+
+    // 單張上傳觸發邏輯
+    function triggerUpload(el) {
+        currentTarget = el.querySelector('.preview'); // 指向該容器內的 img 標籤
+        imageInput.value = ''; // 重置 value 確保選同一張圖也會觸發變更
+        imageInput.click(); // 模擬點擊
+    }
+
+    // 單張上傳處理程序
+    imageInput.addEventListener('change', function(e) {
+        handleFileSelect(e.target.files[0], (dataUrl) => {
+            if (currentTarget) updatePhotoBox(currentTarget, dataUrl);
+        });
+    });
+
+    // 一鍵填滿觸發邏輯
+    function triggerFillAll() {
+        fillAllInput.value = ''; 
+        fillAllInput.click();
+    }
+
+    // 一鍵填滿處理程序
+    fillAllInput.addEventListener('change', function(e) {
+        handleFileSelect(e.target.files[0], (dataUrl) => {
+            const allPreviews = document.querySelectorAll('.preview');
+            allPreviews.forEach(img => updatePhotoBox(img, dataUrl)); // 迴圈填入所有圖片
+        });
+    });
+
+    // 更新圖片到格子的核心函數
+    function updatePhotoBox(imgEl, dataUrl) {
+        imgEl.src = dataUrl; // 設定圖片來源
+        imgEl.style.display = 'block'; // 顯示圖片
+        const parent = imgEl.parentElement;
+        parent.style.background = 'transparent'; // 移除灰背景
+        parent.style.border = 'none'; // 隱藏邊框以求轉圖美觀
+    }
+
+    // 檔案讀取器封裝
+    function handleFileSelect(file, callback) {
+        if (file) {
+            const reader = new FileReader();
+            // 讀取成功後回傳 Base64 資料流
+            reader.onload = (ev) => callback(ev.target.result);
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // 核心轉圖函數
+    async function processLayout() {
+        const a4 = document.getElementById('a4-page');
+        const saveBtn = document.getElementById('saveBtn');
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        saveBtn.innerText = "正在生成超高畫質圖...";
+        saveBtn.disabled = true;
+
+        // 稍微延遲，確保圖片已被瀏覽器完全解碼
+        await new Promise(r => setTimeout(r, 500));
+
+        // 開始進行 HTML 轉 Canvas
+        html2canvas(a4, { 
+            scale: 5, // 強制 5 倍解析度輸出（確保 A4 列印不糊）
+            useCORS: true, // 開啟跨域支持
+            logging: false, // 關閉排錯日誌
+            backgroundColor: '#BC4C41', // 設定背景色
+            windowWidth: 794, // 固定模擬 A4 寬度像素
+            windowHeight: 1123, // 固定模擬 A4 高度像素
+            onclone: (clonedDoc) => {
+                // 在克隆出的節點上移除預覽用的 transform，否則轉出來的圖會只有一小塊
+                clonedDoc.getElementById('a4-page').style.transform = 'none';
+            }
+        }).then(canvas => {
+            // 將畫布轉為 PNG 格式，不進行任何畫質壓縮
+            const dataUrl = canvas.toDataURL('image/png');
+            
+            if (isMobile) {
+                // 手機版：顯示黑色遮罩讓使用者手動存圖
+                document.getElementById('final-image').src = dataUrl;
+                document.getElementById('result-overlay').style.display = 'flex';
+            } else {
+                // 電腦版：自動下載檔案
+                const link = document.createElement('a');
+                link.download = `春聯排版_高清_${new Date().getTime()}.png`;
+                link.href = dataUrl;
+                link.click();
+            }
+            
+            saveBtn.innerText = "💾 下載 A4 圖片";
+            saveBtn.disabled = false;
+        }).catch(err => {
+            console.error(err);
+            alert("生成失敗，可能是圖片過大，請嘗試換一張圖。");
+            saveBtn.disabled = false;
+        });
+    }
+
+    // 清除畫面上所有圖片的邏輯
+    function clearAllPhotos() {
+        if (confirm('確定要清除所有照片嗎？')) {
+            document.querySelectorAll('.preview').forEach(img => {
+                img.src = '';
+                img.style.display = 'none';
+                const parent = img.parentElement;
+                parent.style.background = 'rgba(255,255,255,0.1)';
+                parent.style.border = '0.2mm solid rgba(255,255,255,0.3)';
+            });
+            imageInput.value = '';
+            fillAllInput.value = '';
+        }
+    }
+</script>
+
+<hr>
+<div style="text-align: center; margin-top: 20px;">
+    <a href="./gmf/index.html" style="padding: 10px 20px; background-color: #f39c12; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        手動添加不同尺寸
+    </a>
+</div>
+</body>
+</html>

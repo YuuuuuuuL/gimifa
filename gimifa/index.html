@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雞米花春聯排版工具 - 專業高畫質版</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+    <header class="app-header">
+        <h1 class="app-title">雞米花春聯排版工具 Pro</h1>
+    </header>
+
+    <main class="control-panel">
+        <div class="control-group">
+            <span class="group-label">⚡ 一鍵操作</span>
+            <button class="btn btn-secondary" onclick="triggerFillAll()">
+                <span>⚡</span> 一鍵填滿所有格子
+            </button>
+            <button class="btn btn-outline" onclick="clearAll()">
+                <span>🗑️</span> 全部清空
+            </button>
+        </div>
+
+        <div class="control-group">
+            <span class="group-label">✨ 新增常用尺寸組合</span>
+            <button class="btn btn-outline" onclick="addCombo15()">15cm 組合 (15+5*3)</button>
+            <button class="btn btn-outline" onclick="addCombo10()">10cm 組合 (10+5*4)</button>
+        </div>
+
+        <div class="control-group">
+            <span class="group-label">📏 新增單一尺寸 (點擊後自動放入 A4)</span>
+            <button class="btn btn-outline" onclick="addBox('s15')">15cm</button>
+            <button class="btn btn-outline" onclick="addBox('s10')">10cm</button>
+            <button class="btn btn-outline" onclick="addBox('s5')">5cm</button>
+            <button class="btn btn-outline" onclick="addBox('s4')">4cm</button>
+            <button class="btn btn-outline" onclick="addBox('long-big')">大對聯</button>
+            <button class="btn btn-outline" onclick="addBox('long-small')">小對聯</button>
+        </div>
+
+        <div class="control-group" style="padding-top: 10px; border-top: 1px solid var(--glass-border);">
+            <button id="exportBtn" class="btn btn-primary" style="width: 100%; font-size: 16px;"
+                onclick="handleExport()">
+                <span>💾</span> 下載高畫質 A4 圖片 (300+ DPI)
+            </button>
+        </div>
+    </main>
+
+    <section class="preview-stage">
+        <div class="preview-container" id="preview-scaler">
+            <div id="a4-page">
+                <!-- 排版格子會在這裡自動生成 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 隱藏的 Input 元素 -->
+    <input type="file" id="singleInput" accept="image/*" style="display:none">
+    <input type="file" id="batchInput" accept="image/*" style="display:none">
+
+    <!-- 成功導出的預覽層 -->
+    <div id="result-overlay" class="overlay" onclick="this.style.display='none'">
+        <p>✨ 圖片生成成功！</p>
+        <p>手機用戶請「長按圖片」存檔，電腦用戶已自動下載。</p>
+        <img id="final-image">
+        <button class="btn btn-outline" style="margin-top: 20px;">返回修改</button>
+    </div>
+
+    <!-- 載入中 Prompt -->
+    <div id="loading-toast" class="loading-toast">
+        正在渲染高解析度圖片... 請稍候
+    </div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>
