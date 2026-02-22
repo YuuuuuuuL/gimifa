@@ -163,14 +163,30 @@ async function handleExport() {
     try {
         const canvas = await html2canvas(a4Page, {
             scale: 4, useCORS: true, backgroundColor: '#BC4C41',
-            width: 793.7, height: 1122.5,
+            width: 794, height: 1123, // 使用整數避開亞像素渲染問題
             onclone: (clonedDoc) => {
                 const s = clonedDoc.getElementById('preview-scaler');
                 const a = clonedDoc.getElementById('a4-page');
-                if (s) { s.style.transform = 'none'; s.style.width = '793.7px'; s.style.height = '1122.5px'; }
+
+                // 移除陰影與任何可能溢出的樣式
+                if (s) {
+                    s.style.transform = 'none';
+                    s.style.width = '794px';
+                    s.style.height = '1123px';
+                    s.style.boxShadow = 'none';
+                    s.style.margin = '0';
+                    s.style.padding = '0';
+                }
+
                 if (a) {
-                    a.style.width = '793.7px'; a.style.height = '1122.5px'; a.style.margin = '0';
-                    a.style.position = 'absolute'; a.style.top = '0'; a.style.left = '0';
+                    a.style.width = '794px';
+                    a.style.height = '1123px';
+                    a.style.margin = '0';
+                    a.style.position = 'fixed'; // 固定位置確保 capture
+                    a.style.top = '0';
+                    a.style.left = '0';
+                    a.style.border = 'none';
+                    a.style.boxShadow = 'none'; // 移除內陰影
                 }
             }
         });
