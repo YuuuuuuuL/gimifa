@@ -27,6 +27,32 @@ body {
     /* 橫向排列 */
     height: 100vh;
     overflow: hidden;
+    transition: padding-top 0.3s ease;
+}
+
+/* 手機版浮動選單鍵樣式 */
+.menu-toggle {
+    display: none;
+    /* 預設在桌面版隱藏 */
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    z-index: 200;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 30px;
+    background: var(--accent-red);
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(230, 0, 18, 0.4);
+    cursor: pointer;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.menu-toggle:active {
+    transform: scale(0.95);
 }
 
 /* Sidebar */
@@ -313,25 +339,57 @@ body {
 @media (max-width: 900px) {
     body {
         flex-direction: column;
-        overflow-y: auto;
+        overflow: hidden;
     }
 
+    .menu-toggle {
+        display: flex;
+    }
+
+    /* 顯示切換按鈕 */
+
     .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
         width: 100%;
-        height: auto;
+        height: 70vh;
+        /* 佔據螢幕大部分但非全部 */
         border-right: none;
         border-bottom: 1px solid var(--glass-border);
-        padding: 15px;
+        transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    }
+
+    /* 摺疊狀態 */
+    body.mobile-closed .sidebar {
+        transform: translateY(-100%);
+    }
+
+    body.mobile-open .sidebar {
+        transform: translateY(0);
     }
 
     .main-viewport {
-        padding: 20px;
-        height: auto;
-        overflow: visible;
+        padding: 60px 20px 20px 20px;
+        height: 100vh;
+        width: 100%;
+    }
+
+    .preview-container {
+        margin-top: 20px;
     }
 
     .control-group {
         border-bottom: none;
         padding-bottom: 10px;
+    }
+
+    /* 將下載按鈕固定在側邊欄的最顯眼處 (手機版) */
+    .sidebar button#exportBtn {
+        position: sticky;
+        bottom: 0px;
+        background: var(--accent-red);
+        border: 2px solid rgba(255, 255, 255, 0.2);
     }
 }
