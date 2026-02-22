@@ -7,6 +7,34 @@ const singleInput = document.getElementById('singleInput');
 const batchInput = document.getElementById('batchInput');
 const previewScaler = document.getElementById('preview-scaler');
 const loadingToast = document.getElementById('loading-toast');
+const menuToggle = document.getElementById('menu-toggle');
+
+/**
+ * 手機版選單切換
+ */
+function toggleMenu() {
+    const isClosed = document.body.classList.contains('mobile-closed');
+    if (isClosed) {
+        document.body.classList.remove('mobile-closed');
+        document.body.classList.add('mobile-open');
+        menuToggle.innerHTML = '<span class="icon">👁️</span><span class="text">查看畫布</span>';
+    } else {
+        document.body.classList.remove('mobile-open');
+        document.body.classList.add('mobile-closed');
+        menuToggle.innerHTML = '<span class="icon">⚙️</span><span class="text">開啟設定</span>';
+    }
+}
+
+/**
+ * 在手機版執行操作後自動關閉選單，以便查看結果
+ */
+function autoCloseMenuOnMobile() {
+    if (window.innerWidth <= 900) {
+        document.body.classList.remove('mobile-open');
+        document.body.classList.add('mobile-closed');
+        menuToggle.innerHTML = '<span class="icon">⚙️</span><span class="text">開啟設定</span>';
+    }
+}
 
 let activeBox = null;
 
@@ -68,14 +96,17 @@ function appendToA4(el) {
     return true;
 }
 
-function addBox(cls) { appendToA4(createPhotoBox(cls)); }
+function addBox(cls) {
+    if (appendToA4(createPhotoBox(cls))) autoCloseMenuOnMobile();
+}
 
 function addCombo15() {
     const row = document.createElement('div'); row.className = 'row';
     row.appendChild(createPhotoBox('s15'));
     const v = document.createElement('div'); v.className = 'v-stack';
     v.appendChild(createPhotoBox('s5')); v.appendChild(createPhotoBox('s5')); v.appendChild(createPhotoBox('s5'));
-    row.appendChild(v); appendToA4(row);
+    row.appendChild(v);
+    if (appendToA4(row)) autoCloseMenuOnMobile();
 }
 
 function addCombo10() {
@@ -86,10 +117,15 @@ function addCombo10() {
         v.appendChild(createPhotoBox('s5')); v.appendChild(createPhotoBox('s5'));
         row.appendChild(v);
     }
-    appendToA4(row);
+    if (appendToA4(row)) autoCloseMenuOnMobile();
 }
 
-function clearAll() { if (confirm('確定要清空嗎？')) a4Page.innerHTML = ''; }
+function clearAll() {
+    if (confirm('確定要清空嗎？')) {
+        a4Page.innerHTML = '';
+        autoCloseMenuOnMobile();
+    }
+}
 
 singleInput.onchange = (e) => {
     const file = e.target.files[0];
